@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } f
 import { LayoutDashboard, FolderTree, Database, Terminal, Settings as SettingsIcon, Menu, X, LogOut, Users, UserCircle, ShieldCheck, Trophy, Zap, Box, ShoppingBag, ScrollText, Package, Lock, UserX, Heart, History, MessageSquare, Ban, Globe, Gift, Map, Medal, Home, Calendar, Megaphone, ShieldX, Sparkles, ShieldAlert, Ticket, Crown, Navigation, Store, RefreshCw, Server, ShieldAlert as ShieldAlertIcon, FileCode, HardDrive, ArrowRightLeft, MessageCircle, TrendingUp, MapPin, Bug, Wrench, Activity, Shield } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { AppProvider, useAppContext } from "./context/AppContext";
 import Dashboard from "./pages/Dashboard";
 import FileExplorer from "./pages/FileExplorer";

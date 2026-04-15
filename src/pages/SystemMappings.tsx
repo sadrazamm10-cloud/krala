@@ -79,7 +79,7 @@ export default function SystemMappings() {
   const saveAll = () => {
     // Save table mappings
     Object.entries(mappings).forEach(([key, value]) => {
-      if (value.trim() !== "") {
+      if (typeof value === 'string' && value.trim() !== "") {
         updateTableMapping(key, value);
       }
     });

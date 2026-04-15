@@ -247,7 +247,7 @@ app.get("/api/test-connection", async (req, res) => {
   }
 });
 
-import { GoogleGenAI } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 // Get Real Stats
 app.get("/api/stats", async (req, res) => {
@@ -315,65 +315,58 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    const genAI = new GoogleGenAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: `Sen Metin2 Yönetim Paneli asistanısın. Bu sistemi Uğur Kaya - ITJA geliştirmiştir. 
+    const ai = new GoogleGenAI({ apiKey });
+    
+    // Define the tool for table mapping
+    const tableMappingTool = {
+      functionDeclarations: [
+        {
+          name: "update_table_mapping",
+          description: "Veritabanı tablo isimlerini kullanıcının sistemine göre eşleştirir/değiştirir.",
+          parameters: {
+            type: Type.OBJECT,
+            properties: {
+              originalTable: {
+                type: Type.STRING,
+                description: "Sistemin varsayılan tablo adı (örneğin: player, item_proto, account)"
+              },
+              newTable: {
+                type: Type.STRING,
+                description: "Kullanıcının veritabanındaki yeni tablo adı (örneğin: oyuncu, esyalar, hesap)"
+              }
+            },
+            required: ["originalTable", "newTable"]
+          }
+        }
+      ]
+    };
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [
+        ...history.map((msg: any) => ({
+          role: msg.role === "model" ? "model" : "user",
+          parts: [{ text: msg.content }]
+        })),
+        { role: "user", parts: [{ text: message }] }
+      ],
+      config: {
+        systemInstruction: `Sen Metin2 Yönetim Paneli asistanısın. Bu sistemi Uğur Kaya - ITJA geliştirmiştir. 
 Sadece bu sistem ve Metin2 sunucu yönetimi hakkında bilgi ver. 
 Kullanıcının veritabanı tabloları farklıysa (örneğin player yerine oyuncu), bunu tespit edip sistemi ona göre entegre edebilirsin.
 Bunu yapmak için 'update_table_mapping' aracını kullan. Örneğin kullanıcı "benim oyuncu tablomun adı oyuncu" derse, originalTable: "player", newTable: "oyuncu" olarak aracı çağır.
 Kullanıcıya yardımcı olurken nazik ve profesyonel ol.`,
-    });
-
-    const chat = model.startChat({
-      history: history.map((msg: any) => ({
-        role: msg.role === "model" ? "model" : "user",
-        parts: [{ text: msg.content }],
-      })),
-    });
-
-    // Define the tool for table mapping
-    const tools = [
-      {
-        functionDeclarations: [
-          {
-            name: "update_table_mapping",
-            description: "Veritabanı tablo isimlerini kullanıcının sistemine göre eşleştirir/değiştirir.",
-            parameters: {
-              type: "object",
-              properties: {
-                originalTable: {
-                  type: "string",
-                  description: "Sistemin varsayılan tablo adı (örneğin: player, item_proto, account)"
-                },
-                newTable: {
-                  type: "string",
-                  description: "Kullanıcının veritabanındaki yeni tablo adı (örneğin: oyuncu, esyalar, hesap)"
-                }
-              },
-              required: ["originalTable", "newTable"]
-            }
-          }
-        ]
+        tools: [tableMappingTool]
       }
-    ];
-
-    // Re-initialize model with tools for this specific call if needed, 
-    // but for simplicity we'll handle the response
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: message }] }],
-      tools: tools
     });
 
-    const response = result.response;
-    let replyText = response.text();
+    let replyText = response.text || "";
     let mappingUpdate = null;
 
     // Check for function calls
-    const calls = response.candidates?.[0]?.content?.parts?.filter(p => p.functionCall);
-    if (calls && calls.length > 0) {
-      const call = calls[0].functionCall;
-      if (call?.name === "update_table_mapping") {
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      const call = response.functionCalls[0];
+      if (call.name === "update_table_mapping") {
         const args = call.args as any;
         mappingUpdate = {
           original: args.originalTable,
