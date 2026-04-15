@@ -28,13 +28,16 @@ async function startServer() {
 }
 
 function createWindow() {
+  const preloadPath = path.join(__dirname, 'preload.cjs');
+  console.log('Preload path:', preloadPath);
+
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: preloadPath,
     },
     title: "GAME PANEL - Desktop",
     backgroundColor: '#ffffff', // Set a background color

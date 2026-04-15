@@ -13,7 +13,7 @@
     "clean": "rm -rf dist dist-electron",
     "lint": "tsc --noEmit",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && tsc electron-main.ts server.ts --outDir dist-electron --module esnext --target es2022 --moduleResolution bundler && electron-builder"
+    "electron:build": "npm run build && tsc electron-main.ts server.ts --outDir dist-electron --module esnext --target es2022 --moduleResolution bundler && cp preload.cjs dist-electron/preload.cjs && electron-builder"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
