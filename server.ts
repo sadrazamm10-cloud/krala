@@ -247,7 +247,7 @@ app.get("/api/test-connection", async (req, res) => {
   }
 });
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/generative-ai";
 
 // Get Real Stats
 app.get("/api/stats", async (req, res) => {
