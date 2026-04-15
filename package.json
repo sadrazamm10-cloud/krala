@@ -56,8 +56,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.gamepanel.admin",
-    "productName": "Game Panel Admin",
+    "appId": "com.itja.gamepanel",
+    "productName": "ITJA GAME PANEL",
     "directories": {
       "output": "release"
     },
@@ -67,7 +67,8 @@
       "package.json"
     ],
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "icon.ico"
     },
     "mac": {
       "target": "dmg"

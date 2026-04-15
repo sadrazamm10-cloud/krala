@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, Menu, shell, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -65,18 +65,17 @@ function createMenu(win: BrowserWindow) {
         {
           label: 'ITJA Web Sitesi',
           click: async () => {
-            await shell.openExternal('https://itja.com.tr');
+            await shell.openExternal('https://www.ugurkaya.work');
           }
         },
         {
           label: 'Hakkında',
           click: () => {
-            const { dialog } = require('electron');
             dialog.showMessageBox(win, {
               type: 'info',
               title: 'Hakkında',
-              message: 'Metin2 Game Panel Admin',
-              detail: 'Geliştirici: Uğur Kaya - ITJA\nVersiyon: 1.0.0'
+              message: 'ITJA GAME PANEL',
+              detail: 'Geliştirici: Uğur Kaya\nWeb: www.ugurkaya.work\nVersiyon: 1.0.0'
             });
           }
         }
@@ -100,7 +99,7 @@ function createWindow() {
       contextIsolation: true,
       preload: preloadPath,
     },
-    title: "GAME PANEL - Desktop",
+    title: "ITJA GAME PANEL",
     backgroundColor: '#ffffff', // Set a background color
   });
 
