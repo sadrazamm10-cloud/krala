@@ -342,7 +342,7 @@ app.post("/api/chat", async (req, res) => {
     };
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash-exp",
       contents: [
         ...history.map((msg: any) => ({
           role: msg.role === "model" ? "model" : "user",
