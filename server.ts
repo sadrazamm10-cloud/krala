@@ -304,108 +304,91 @@ app.get("/api/stats", async (req, res) => {
   }
 });
 
-// Chat Endpoint (SambaNova Integration)
+// Chat Endpoint (Google Gemini Integration - Free Tier)
 app.post("/api/chat", async (req, res) => {
   const { message, history } = req.body;
   
-  // SambaNova API Key - Kullanıcıdan alınan key buraya eklenecek
-  const apiKey = process.env.SAMBANOVA_API_KEY || "74994ef5-af24-4675-b1e2-84d66ac62486";
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "SambaNova API anahtarı bulunamadı. Lütfen anahtarınızı girin." });
+    return res.status(500).json({ error: "Gemini API anahtarı bulunamadı." });
   }
 
   try {
-    const systemInstruction = `Sen Metin2 Yönetim Paneli asistanısın. Bu sistemi Uğur Kaya - ITJA geliştirmiştir. 
+    const genAI = new GoogleGenAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: `Sen Metin2 Yönetim Paneli asistanısın. Bu sistemi Uğur Kaya - ITJA geliştirmiştir. 
 Sadece bu sistem ve Metin2 sunucu yönetimi hakkında bilgi ver. 
 Kullanıcının veritabanı tabloları farklıysa (örneğin player yerine oyuncu), bunu tespit edip sistemi ona göre entegre edebilirsin.
 Bunu yapmak için 'update_table_mapping' aracını kullan. Örneğin kullanıcı "benim oyuncu tablomun adı oyuncu" derse, originalTable: "player", newTable: "oyuncu" olarak aracı çağır.
-Kullanıcıya yardımcı olurken nazik ve profesyonel ol.`;
+Kullanıcıya yardımcı olurken nazik ve profesyonel ol.`,
+    });
 
-    // Format messages for SambaNova (OpenAI format)
-    const formattedMessages = [
-      { role: "system", content: systemInstruction },
-      ...history.map((msg: any) => ({
-        role: msg.role === "model" ? "assistant" : "user",
-        content: msg.content
+    const chat = model.startChat({
+      history: history.map((msg: any) => ({
+        role: msg.role === "model" ? "model" : "user",
+        parts: [{ text: msg.content }],
       })),
-      { role: "user", content: message }
-    ];
+    });
 
-    const response = await fetch("https://api.sambanova.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "Meta-Llama-3.3-70B-Instruct", // SambaNova model
-        messages: formattedMessages,
-        temperature: 0.7,
-        tools: [
+    // Define the tool for table mapping
+    const tools = [
+      {
+        functionDeclarations: [
           {
-            type: "function",
-            function: {
-              name: "update_table_mapping",
-              description: "Veritabanı tablo isimlerini kullanıcının sistemine göre eşleştirir/değiştirir.",
-              parameters: {
-                type: "object",
-                properties: {
-                  originalTable: {
-                    type: "string",
-                    description: "Sistemin varsayılan tablo adı (örneğin: player, item_proto, account)"
-                  },
-                  newTable: {
-                    type: "string",
-                    description: "Kullanıcının veritabanındaki yeni tablo adı (örneğin: oyuncu, esyalar, hesap)"
-                  }
+            name: "update_table_mapping",
+            description: "Veritabanı tablo isimlerini kullanıcının sistemine göre eşleştirir/değiştirir.",
+            parameters: {
+              type: "object",
+              properties: {
+                originalTable: {
+                  type: "string",
+                  description: "Sistemin varsayılan tablo adı (örneğin: player, item_proto, account)"
                 },
-                required: ["originalTable", "newTable"]
-              }
+                newTable: {
+                  type: "string",
+                  description: "Kullanıcının veritabanındaki yeni tablo adı (örneğin: oyuncu, esyalar, hesap)"
+                }
+              },
+              required: ["originalTable", "newTable"]
             }
           }
         ]
-      })
+      }
+    ];
+
+    // Re-initialize model with tools for this specific call if needed, 
+    // but for simplicity we'll handle the response
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: message }] }],
+      tools: tools
     });
 
-    if (!response.ok) {
-      const errData = await response.text();
-      throw new Error(`SambaNova API Hatası: ${errData}`);
-    }
-
-    const data = await response.json();
-    const messageObj = data.choices[0].message;
-    let replyText = messageObj.content || "";
+    const response = result.response;
+    let replyText = response.text();
     let mappingUpdate = null;
 
-    if (messageObj.tool_calls && messageObj.tool_calls.length > 0) {
-      const toolCall = messageObj.tool_calls.find((tc: any) => tc.function.name === "update_table_mapping");
-      if (toolCall) {
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          mappingUpdate = {
-            original: args.originalTable,
-            new: args.newTable
-          };
-          if (!replyText) {
-            replyText = `Sistem entegre edildi: '${args.originalTable}' tablosu artık '${args.newTable}' olarak kullanılacak. Başka bir isteğiniz var mı?`;
-          }
-        } catch (e) {
-          console.error("Tool args parse error", e);
+    // Check for function calls
+    const calls = response.candidates?.[0]?.content?.parts?.filter(p => p.functionCall);
+    if (calls && calls.length > 0) {
+      const call = calls[0].functionCall;
+      if (call?.name === "update_table_mapping") {
+        const args = call.args as any;
+        mappingUpdate = {
+          original: args.originalTable,
+          new: args.newTable
+        };
+        if (!replyText) {
+          replyText = `Sistem entegre edildi: '${args.originalTable}' tablosu artık '${args.newTable}' olarak kullanılacak. Başka bir isteğiniz var mı?`;
         }
       }
     }
     
     res.json({ reply: replyText, mappingUpdate });
   } catch (error: any) {
-    console.error("SambaNova Error:", error);
-    if (error.message?.includes("API key not valid") || error.message?.includes("Unauthorized")) {
-      return res.status(400).json({ error: "Geçersiz SambaNova API Anahtarı. Lütfen geçerli bir anahtar girin." });
-    }
-    if (error.message?.includes("Rate limit exceeded") || error.message?.includes("rate_limit_exceeded")) {
-      return res.status(429).json({ error: "SambaNova API kota sınırına (Rate Limit) ulaşıldı. Lütfen biraz bekleyip tekrar deneyin." });
-    }
-    res.status(500).json({ error: "Yapay zeka yanıt veremedi." });
+    console.error("Gemini Error:", error);
+    res.status(500).json({ error: "Yapay zeka şu an yanıt veremiyor." });
   }
 });
 
@@ -418,10 +401,16 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    const isElectron = !!process.versions.electron;
+    const distPath = isElectron 
+      ? path.join(__dirname, "..", "dist")
+      : path.join(process.cwd(), "dist");
+    
+    console.log(`Serving static files from: ${distPath}`);
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      const indexPath = path.join(distPath, "index.html");
+      res.sendFile(indexPath);
     });
   }
 

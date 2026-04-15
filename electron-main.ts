@@ -20,6 +20,8 @@ async function startServer() {
     // In production, we import the compiled server
     await import('./server.js'); 
     console.log('Express server started');
+    // Give the server a moment to start listening
+    await new Promise(resolve => setTimeout(resolve, 1000));
   } catch (err) {
     console.error('Failed to start express server:', err);
   }
@@ -35,15 +37,31 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
     },
     title: "GAME PANEL - Desktop",
+    backgroundColor: '#ffffff', // Set a background color
   });
 
-  // Load the app
   const url = 'http://localhost:3000';
-  win.loadURL(url);
+  
+  const loadWithRetry = (attempts = 0) => {
+    win.loadURL(url).catch(err => {
+      if (attempts < 5) {
+        console.log(`Failed to load URL, retrying... (${attempts + 1})`);
+        setTimeout(() => loadWithRetry(attempts + 1), 1000);
+      } else {
+        console.error('Failed to load URL after 5 attempts:', err);
+      }
+    });
+  };
+
+  loadWithRetry();
 
   if (isDev) {
     win.webContents.openDevTools();
   }
+  
+  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Page failed to load:', errorCode, errorDescription);
+  });
 }
 
 app.whenReady().then(async () => {
