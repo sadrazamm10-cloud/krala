@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -27,6 +27,67 @@ async function startServer() {
   }
 }
 
+function createMenu(win: BrowserWindow) {
+  const template: any = [
+    {
+      label: 'Dosya',
+      submenu: [
+        { label: 'Yeniden Başlat', role: 'reload' },
+        { label: 'Zorla Yeniden Başlat', role: 'forceReload' },
+        { type: 'separator' },
+        { label: 'Çıkış', role: 'quit' }
+      ]
+    },
+    {
+      label: 'Görünüm',
+      submenu: [
+        { label: 'Tam Ekran', role: 'togglefullscreen' },
+        { label: 'Yakınlaştır', role: 'zoomIn' },
+        { label: 'Uzaklaştır', role: 'zoomOut' },
+        { label: 'Varsayılan Boyut', role: 'resetZoom' }
+      ]
+    },
+    {
+      label: 'Hızlı Erişim',
+      submenu: [
+        { label: 'Ana Panel', click: () => win.loadURL('http://127.0.0.1:3000/#/') },
+        { label: 'Oyuncu Yönetimi', click: () => win.loadURL('http://127.0.0.1:3000/#/players') },
+        { label: 'Hesap Yönetimi', click: () => win.loadURL('http://127.0.0.1:3000/#/accounts') },
+        { type: 'separator' },
+        { label: 'Veritabanı Yönetimi', click: () => win.loadURL('http://127.0.0.1:3000/#/database') },
+        { label: 'Dosya Gezgini', click: () => win.loadURL('http://127.0.0.1:3000/#/files') },
+        { label: 'Sunucu Konsolu', click: () => win.loadURL('http://127.0.0.1:3000/#/console') }
+      ]
+    },
+    {
+      label: 'Yardım',
+      submenu: [
+        {
+          label: 'ITJA Web Sitesi',
+          click: async () => {
+            await shell.openExternal('https://itja.com.tr');
+          }
+        },
+        {
+          label: 'Hakkında',
+          click: () => {
+            const { dialog } = require('electron');
+            dialog.showMessageBox(win, {
+              type: 'info',
+              title: 'Hakkında',
+              message: 'Metin2 Game Panel Admin',
+              detail: 'Geliştirici: Uğur Kaya - ITJA\nVersiyon: 1.0.0'
+            });
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 function createWindow() {
   const preloadPath = path.join(__dirname, 'preload.cjs');
   console.log('Preload path:', preloadPath);
@@ -43,6 +104,8 @@ function createWindow() {
     backgroundColor: '#ffffff', // Set a background color
   });
 
+  createMenu(win);
+
   const url = 'http://127.0.0.1:3000';
   
   const loadWithRetry = (attempts = 0) => {
@@ -58,8 +121,8 @@ function createWindow() {
 
   loadWithRetry();
 
-  // Open DevTools even in production for now to see the error
-  win.webContents.openDevTools();
+  // DevTools removed as requested
+  // win.webContents.openDevTools();
   
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Page failed to load:', errorCode, errorDescription);
