@@ -10,10 +10,10 @@
     "dev": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist dist-electron",
+    "clean": "node -e \"const fs = require('fs'); ['dist', 'dist-electron'].forEach(d => fs.rmSync(d, { recursive: true, force: true }))\"",
     "lint": "tsc --noEmit",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && tsc electron-main.ts server.ts --outDir dist-electron --module esnext --target es2022 --moduleResolution bundler && copy preload.cjs dist-electron\\preload.cjs && electron-builder"
+    "electron:build": "npm run build && tsc electron-main.ts server.ts --outDir dist-electron --module esnext --target es2022 --moduleResolution bundler && node -e \"const fs = require('fs'); if (!fs.existsSync('dist-electron')) fs.mkdirSync('dist-electron'); fs.copyFileSync('preload.cjs', 'dist-electron/preload.cjs')\" && electron-builder"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
