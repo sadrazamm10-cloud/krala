@@ -1,14 +1,14 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import isDev from 'electron-is-dev';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const isDev = !app.isPackaged;
+
 // Import the server
-// We'll use dynamic import to start the express server
 let serverProcess: any;
 
 async function startServer() {
@@ -18,7 +18,6 @@ async function startServer() {
   }
   try {
     // In production, we import the compiled server
-    // We assume server.ts is compiled to server.js in the same directory or dist
     await import('./server.js'); 
     console.log('Express server started');
   } catch (err) {
@@ -39,9 +38,7 @@ function createWindow() {
   });
 
   // Load the app
-  // In dev, we load from the vite dev server
-  // In prod, we load from the express server (which serves the dist folder)
-  const url = isDev ? 'http://localhost:3000' : 'http://localhost:3000';
+  const url = 'http://localhost:3000';
   win.loadURL(url);
 
   if (isDev) {
