@@ -387,14 +387,16 @@ Kullanıcıya yardımcı olurken nazik ve profesyonel ol.`,
 
 // --- VITE MIDDLEWARE ---
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  const isElectron = !!process.versions.electron;
+  const isProd = process.env.NODE_ENV === "production" || isElectron;
+
+  if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const isElectron = !!process.versions.electron;
     const distPath = isElectron 
       ? path.join(__dirname, "..", "dist")
       : path.join(process.cwd(), "dist");
@@ -408,7 +410,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://127.0.0.1:${PORT}`);
   });
 }
 

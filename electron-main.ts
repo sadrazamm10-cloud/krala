@@ -40,24 +40,23 @@ function createWindow() {
     backgroundColor: '#ffffff', // Set a background color
   });
 
-  const url = 'http://localhost:3000';
+  const url = 'http://127.0.0.1:3000';
   
   const loadWithRetry = (attempts = 0) => {
     win.loadURL(url).catch(err => {
-      if (attempts < 5) {
+      if (attempts < 10) { // Increased retries
         console.log(`Failed to load URL, retrying... (${attempts + 1})`);
         setTimeout(() => loadWithRetry(attempts + 1), 1000);
       } else {
-        console.error('Failed to load URL after 5 attempts:', err);
+        console.error('Failed to load URL after 10 attempts:', err);
       }
     });
   };
 
   loadWithRetry();
 
-  if (isDev) {
-    win.webContents.openDevTools();
-  }
+  // Open DevTools even in production for now to see the error
+  win.webContents.openDevTools();
   
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Page failed to load:', errorCode, errorDescription);
